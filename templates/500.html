@@ -1,0 +1,14 @@
+<!-- templates/500.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <strong class="font-bold">Server Error!</strong>
+        <span class="block sm:inline">Something went wrong. Please try again later.</span>
+    </div>
+    <div class="mt-4">
+        <a href="{{ url_for('index') }}" class="text-blue-500 hover:text-blue-700">Return to Home</a>
+    </div>
+</div>
+{% endblock %}

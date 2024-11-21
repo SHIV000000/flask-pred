@@ -1,0 +1,106 @@
+<!-- templates/prediction_history.html -->
+
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Stats Summary -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-gray-700">Total Predictions</h3>
+                <p class="text-2xl font-bold text-blue-600">{{ predictions|length }}</p>
+            </div>
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-gray-700">Success Rate</h3>
+                <p class="text-2xl font-bold text-green-600">
+                    {{ "%.1f"|format(accuracy) }}%
+                </p>
+            </div>
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-gray-700">Total Coins</h3>
+                <p class="text-2xl font-bold text-yellow-600">{{ coins }}</p>
+            </div>
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-gray-700">Boost Points</h3>
+                <p class="text-2xl font-bold text-purple-600">{{ boost_points }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Predictions List -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Game</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prediction</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Result</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rewards</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for prediction in predictions %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ prediction.created_at|datetime }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ prediction.home_team }} vs {{ prediction.away_team }}</div>
+                        <div class="text-sm text-gray-500">
+                            {% if prediction.status != 'pending' %}
+                                {{ prediction.home_score_actual }}-{{ prediction.away_score_actual }}
+                            {% else %}
+                                Pending
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                            {% if prediction.confidence == 'high' %}
+                                bg-green-100 text-green-800
+                            {% elif prediction.confidence == 'medium' %}
+                                bg-yellow-100 text-yellow-800
+                            {% else %}
+                                bg-red-100 text-red-800
+                            {% endif %}">
+                            {{ prediction.predicted_winner }} ({{ prediction.confidence }})
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if prediction.status == 'pending' %}
+                            <span class="text-gray-500">Pending</span>
+                        {% else %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                {% if prediction.status == 'correct' %}
+                                    bg-green-100 text-green-800
+                                {% else %}
+                                    bg-red-100 text-red-800
+                                {% endif %}">
+                                {{ prediction.status|title }}
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if prediction.status == 'correct' %}
+                            <div class="text-sm text-gray-900">
+                                <span class="text-yellow-600">+{{ prediction.coins_won }} coins</span>
+                                {% if prediction.boost_points_earned > 0 %}
+                                    <span class="text-purple-600 ml-2">+{{ prediction.boost_points_earned }} boost</span>
+                                {% endif %}
+                            </div>
+                        {% elif prediction.status == 'incorrect' %}
+                            <span class="text-red-600">-{{ prediction.coins_wagered }} coins</span>
+                        {% else %}
+                            <span class="text-gray-500">Wagered: {{ prediction.coins_wagered }} coins</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

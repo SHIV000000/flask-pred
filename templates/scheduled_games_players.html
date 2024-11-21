@@ -1,0 +1,156 @@
+<!-- templates/scheduled_games_players.html -->
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    <h1 class="text-3xl font-extrabold mb-8 text-green-800 border-b-2 border-green-300 pb-3">
+        Upcoming Games & Player Details
+    </h1>
+
+    {% for game_detail in games %}
+    <div class="bg-white shadow-lg rounded-xl mb-8 border border-green-100 overflow-hidden">
+        <!-- Game Header -->
+        <div class="bg-green-50 p-4 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <!-- Team Logos -->
+                <div class="flex items-center">
+                    {% if game_detail.home_team.team_details and game_detail.home_team.team_details.logo %}
+                    <img src="{{ game_detail.home_team.team_details.logo }}" alt="{{ game_detail.home_team.name }} logo" class="h-10 w-10 mr-2 rounded-full shadow">
+                    {% endif %}
+                    <div class="font-bold text-xl text-green-900">
+                        {{ game_detail.home_team.name }}
+                    </div>
+                </div>
+
+                <div class="text-gray-500 font-semibold px-3">VS</div>
+
+                <div class="flex items-center">
+                    <div class="font-bold text-xl text-green-900 mr-2">
+                        {{ game_detail.away_team.name }}
+                    </div>
+                    {% if game_detail.away_team.team_details and game_detail.away_team.team_details.logo %}
+                    <img src="{{ game_detail.away_team.team_details.logo }}" alt="{{ game_detail.away_team.name }} logo" class="h-10 w-10 rounded-full shadow">
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="text-green-700 font-medium">
+                {{ game_detail.game_date }}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6 p-6">
+            <!-- Home Team Section -->
+            <div>
+                <h3 class="text-xl font-bold text-green-800 mb-4">
+                    {{ game_detail.home_team.name }} 
+                    {% if game_detail.home_team.team_details and game_detail.home_team.team_details.code %}
+                    <span class="text-sm text-green-600">({{ game_detail.home_team.team_details.code }})</span>
+                    {% endif %}
+                </h3>
+                
+                <!-- Team Info -->
+                {% if game_detail.home_team.team_details %}
+                <div class="bg-green-50 p-3 rounded-lg mb-4">
+                    <h4 class="font-semibold text-green-900 mb-2">Team Information</h4>
+                    <p class="text-green-800">City: {{ game_detail.home_team.team_details.city }}</p>
+                    {% if game_detail.home_team.team_details.leagues and game_detail.home_team.team_details.leagues.standard %}
+                    <p class="text-green-800">Conference: {{ game_detail.home_team.team_details.leagues.standard.conference }}</p>
+                    <p class="text-green-800">Division: {{ game_detail.home_team.team_details.leagues.standard.division }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Player List -->
+                {% if game_detail.home_team.roster %}
+                <details class="bg-green-50 p-3 rounded-lg">
+                    <summary class="cursor-pointer text-green-900 font-semibold">
+                        Full Roster ({{ game_detail.home_team.roster|length }} players)
+                    </summary>
+                    <ul class="mt-3 space-y-2">
+                        {% for player in game_detail.home_team.roster %}
+                        <li class="py-1 border-b border-green-200 last:border-b-0">
+                            <span class="font-medium text-green-900">
+                                {{ player.firstname }} {{ player.lastname }}
+                            </span>
+                            {% if player.leagues and player.leagues.standard %}
+                            <span class="text-green-600 ml-2">
+                                ({{ player.leagues.standard.pos|default('N/A') }})
+                                #{{ player.leagues.standard.jersey|default('N/A') }}
+                            </span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </details>
+                {% endif %}
+            </div>
+
+            <!-- Away Team Section -->
+            <div>
+                <h3 class="text-xl font-bold text-green-800 mb-4">
+                    {{ game_detail.away_team.name }}
+                    {% if game_detail.away_team.team_details and game_detail.away_team.team_details.code %}
+                    <span class="text-sm text-green-600">({{ game_detail.away_team.team_details.code }})</span>
+                    {% endif %}
+                </h3>
+                
+                <!-- Team Info -->
+                {% if game_detail.away_team.team_details %}
+                <div class="bg-green-50 p-3 rounded-lg mb-4">
+                    <h4 class="font-semibold text-green-900 mb-2">Team Information</h4>
+                    <p class="text-green-800">City: {{ game_detail.away_team.team_details.city }}</p>
+                    {% if game_detail.away_team.team_details.leagues and game_detail.away_team.team_details.leagues.standard %}
+                    <p class="text-green-800">Conference: {{ game_detail.away_team.team_details.leagues.standard.conference }}</p>
+                    <p class="text-green-800">Division: {{ game_detail.away_team.team_details.leagues.standard.division }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Player List -->
+                {% if game_detail.away_team.roster %}
+                <details class="bg-green-50 p-3 rounded-lg">
+                    <summary class="cursor-pointer text-green-900 font-semibold">
+                        Full Roster ({{ game_detail.away_team.roster|length }} players)
+                    </summary>
+                    <ul class="mt-3 space-y-2">
+                        {% for player in game_detail.away_team.roster %}
+                        <li class="py-1 border-b border-green-200 last:border-b-0">
+                            <span class="font-medium text-green-900">
+                                {{ player.firstname }} {{ player.lastname }}
+                            </span>
+                            {% if player.leagues and player.leagues.standard %}
+                            <span class="text-green-600 ml-2">
+                                ({{ player.leagues.standard.pos|default('N/A') }})
+                                #{{ player.leagues.standard.jersey|default('N/A') }}
+                            </span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </details>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Prediction Section -->
+        {% set prediction = predictions.get(game_detail.game_info.id|string) %}
+        {% if prediction %}
+        <div class="bg-green-100 p-4 text-center">
+            <div class="inline-block bg-white rounded-lg shadow-md px-6 py-3">
+                <strong class="text-green-800">Prediction:</strong> 
+                <span class="font-bold text-green-900">
+                    {{ prediction.predicted_winner }} Winner 
+                </span>
+                <span class="text-green-600 ml-2">
+                    (Confidence: {{ prediction.confidence }})
+                </span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

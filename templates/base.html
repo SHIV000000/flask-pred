@@ -1,0 +1,86 @@
+<!-- templates/base.html -->
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Predictions</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            daisyui: {
+                themes: ["light"],
+            },
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script>
+        moment.locale('en');
+    </script>
+</head>
+<body class="min-h-screen bg-base-100">
+    <div class="navbar bg-base-100 shadow-lg">
+        <div class="navbar-start">
+            <div class="dropdown">
+                <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16" />
+                    </svg>
+                </div>
+                <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                    {% if current_user.is_authenticated %}
+                        <li><a href="{{ url_for('scheduled_games_players') }}" class="text-base">Games & Players</a></li>
+                        <li><a href="{{ url_for('predictions') }}" class="text-base">History</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+            <a href="{{ url_for('index') }}" class="btn btn-ghost text-xl">NBA Predictions</a>
+        </div>
+
+        <div class="navbar-center hidden lg:flex">
+            {% if current_user.is_authenticated %}
+            <ul class="menu menu-horizontal px-1">
+                <li><a href="{{ url_for('scheduled_games_players') }}" class="text-base">Games & Players</a></li>
+                <li><a href="{{ url_for('predictions') }}" class="text-base">History</a></li>
+            </ul>
+            {% endif %}
+        </div>
+
+        <div class="navbar-end">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('logout') }}" class="btn btn-error btn-outline">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="btn btn-ghost">Login</a>
+                <a href="{{ url_for('register') }}" class="btn btn-accent ml-2">Register</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Add flash messages here -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="container mx-auto px-4 mt-4">
+                    <div class="bg-{{ 'green' if category == 'success' else 'red' }}-100 border border-{{ 'green' if category == 'success' else 'red' }}-400 text-{{ 'green' if category == 'success' else 'red' }}-700 px-4 py-3 rounded relative" role="alert">
+                        <span class="block sm:inline">{{ message }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <main class="container mx-auto px-4 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer footer-center p-4 bg-base-200 text-base-content">
+        <aside>
+            <p>© 2024 NBA Predictions. All rights reserved.</p>
+        </aside>
+    </footer>
+</body>
+</html>
+
+

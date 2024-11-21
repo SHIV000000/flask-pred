@@ -1,0 +1,510 @@
+<!-- templates/predictions.html -->
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Stats Summary -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-gray-700">Total Predictions</h3>
+                <p class="text-2xl font-bold text-blue-600">{{ total_predictions }}</p>
+            </div>
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-gray-700">Success Rate</h3>
+                <p class="text-2xl font-bold text-green-600">
+                    {% set correct_predictions = predictions|selectattr('status', 'equalto', 'correct')|list|length %}
+                    {% if total_predictions > 0 %}
+                        {{ "%.1f"|format(correct_predictions / total_predictions * 100) }}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </p>
+            </div>
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-gray-700">Total Coins</h3>
+                <p id="userCoins" class="text-2xl font-bold text-yellow-600">{{ current_user.coins }}</p>
+            </div>
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-gray-700">Boost Points</h3>
+                <p id="userBoostPoints" class="text-2xl font-bold text-purple-600">{{ current_user.boost_points }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Games -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-xl font-bold mb-4">Today's Games</h2>
+        {% if today_games %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for game in today_games %}
+                <div class="border rounded-lg p-4 {% if game.prediction %}bg-gray-50{% endif %}">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-sm text-gray-500">
+                            {{ game.game.date.start|datetime('%I:%M %p') }}
+                        </span>
+                        <span class="text-sm px-2 py-1 rounded-full 
+                            {% if game.game.status.long == 'In Play' %}
+                                bg-green-100 text-green-800
+                            {% elif game.game.status.long == 'Finished' %}
+                                bg-gray-100 text-gray-800
+                            {% else %}
+                                bg-blue-100 text-blue-800
+                            {% endif %}">
+                            {{ game.game.status.long }}
+                        </span>
+                    </div>
+                    <div class="text-lg font-semibold mb-2">
+                        <div class="flex justify-between items-center">
+                            <span>{{ game.game.teams.home.name }}</span>
+                            {% if game.game.status.long == 'In Play' %}
+                                <span class="font-bold">{{ game.game.scores.home.points }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>{{ game.game.teams.away.name }}</span>
+                            {% if game.game.status.long == 'In Play' %}
+                                <span class="font-bold">{{ game.game.scores.away.points }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if game.prediction %}
+                        <div class="mt-3 pt-3 border-t">
+                            <div class="text-sm space-y-1">
+                                <p class="flex justify-between">
+                                    <span>Predicted Winner:</span>
+                                    <span class="font-medium">{{ game.prediction.predicted_winner }}</span>
+                                </p>
+                                <p class="flex justify-between">
+                                    <span>Confidence:</span>
+                                    <span class="font-medium">{{ game.prediction.confidence }}</span>
+                                </p>
+                                <p class="flex justify-between">
+                                    <span>Predicted Score:</span>
+                                    <span class="font-medium">
+                                        {{ game.prediction.home_score_pred }}-{{ game.prediction.away_score_pred }}
+                                    </span>
+                                </p>
+                                {% if game.prediction.coins_wagered > 0 %}
+                                    <p class="flex justify-between text-yellow-600">
+                                        <span>Coins Wagered:</span>
+                                        <span class="font-medium">{{ game.prediction.coins_wagered }}</span>
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <button onclick="makePrediction('{{ game.game.id }}')" 
+                                class="mt-3 w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition duration-200">
+                            Make Prediction
+                        </button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center text-gray-500 py-8">
+                No games scheduled for today
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Prediction History -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b">
+            <h2 class="text-xl font-bold">Prediction History</h2>
+        </div>
+        {% if predictions %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Game</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prediction</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Result</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rewards</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for prediction in predictions %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ prediction.timestamp|datetime }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">
+                                    {{ prediction.home_team }} vs {{ prediction.away_team }}
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    {% if prediction.actual_home_score is not none %}
+                                        {{ prediction.actual_home_score }}-{{ prediction.actual_away_score }}
+                                    {% else %}
+                                        Pending
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm space-y-1">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                        {% if prediction.confidence_level == 'High' %}
+                                            bg-green-100 text-green-800
+                                        {% elif prediction.confidence_level == 'Medium' %}
+                                            bg-yellow-100 text-yellow-800
+                                        {% else %}
+                                            bg-red-100 text-red-800
+                                        {% endif %}">
+                                        {{ prediction.predicted_winner }} ({{ prediction.confidence_level }})
+                                    </span>
+                                    <div class="text-gray-500">
+                                        {{ prediction.predicted_home_score }}-{{ prediction.predicted_away_score }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if prediction.status == 'pending' %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                        Pending
+                                    </span>
+                                {% else %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                        {% if prediction.status == 'correct' %}
+                                            bg-green-100 text-green-800
+                                        {% else %}
+                                            bg-red-100 text-red-800
+                                        {% endif %}">
+                                        {{ prediction.status|title }}
+                                    </span>
+                                    {% if prediction.accuracy_score %}
+                                        <div class="text-sm text-gray-500 mt-1">
+                                            Accuracy: {{ "%.1f"|format(prediction.accuracy_score * 100) }}%
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm">
+                                    {% if prediction.status == 'pending' %}
+                                        {% if prediction.coins_wagered > 0 %}
+                                            <span class="text-yellow-600">
+                                                Wagered: {{ prediction.coins_wagered }} coins
+                                            </span>
+                                        {% else %}
+                                            <span class="text-gray-500">No wager</span>
+                                        {% endif %}
+                                    {% elif prediction.status == 'correct' %}
+                                        <div class="space-y-1">
+                                            <div class="text-green-600">
+                                                +{{ prediction.coins_won }} coins
+                                            </div>
+                                            {% if prediction.boost_points_earned > 0 %}
+                                                <div class="text-purple-600">
+                                                    +{{ prediction.boost_points_earned }} boost points
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-red-600">
+                                            -{{ prediction.coins_wagered }} coins
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center text-gray-500 py-8">
+                No prediction history available
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Prediction Modal -->
+<div id="predictionModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Make Prediction</h3>
+            <div id="predictionContent" class="space-y-4">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="mt-5 flex justify-end space-x-3">
+                <button onclick="closePredictionModal()" 
+                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                    Cancel
+                </button>
+                <button onclick="submitPrediction()" 
+                        class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                    Submit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Predictions -->
+<script>
+let currentGameId = null;
+
+function makePrediction(gameId) {
+    currentGameId = gameId;
+    const modal = document.getElementById('predictionModal');
+    const content = document.getElementById('predictionContent');
+    
+    // Show loading state
+    content.innerHTML = '<div class="text-center">Loading prediction...</div>';
+    modal.classList.remove('hidden');
+    
+    // Fetch prediction
+    fetch(`/api/predictions/${gameId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            updatePredictionModal(data);
+        })
+        .catch(error => {
+            content.innerHTML = `
+                <div class="text-red-600">
+                    Error loading prediction: ${error.message}
+                </div>
+            `;
+        });
+}
+
+function updatePredictionModal(data) {
+    const content = document.getElementById('predictionContent');
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="text-center font-medium">
+                ${data.game.teams.home.name} vs ${data.game.teams.away.name}
+            </div>
+            <div class="border-t pt-4">
+                <div class="mb-2">
+                    <span class="font-medium">Predicted Winner:</span>
+                    ${data.prediction.predicted_winner.name}
+                </div>
+                <div class="mb-2">
+                    <span class="font-medium">Win Probability:</span>
+                    ${(data.prediction.predicted_winner.probability).toFixed(1)}%
+                </div>
+                <div class="mb-2">
+                    <span class="font-medium">Predicted Score:</span>
+                    ${data.prediction.predicted_scores.home.mid}-${data.prediction.predicted_scores.away.mid}
+                </div>
+                <div class="mb-4">
+                    <span class="font-medium">Confidence:</span>
+                    ${data.prediction.confidence_level}
+                </div>
+            </div>
+            <div class="border-t pt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Wager Amount (Coins)
+                </label>
+                <input type="number" id="wagerAmount" 
+                       class="w-full px-3 py-2 border rounded-md"
+                       min="0" max="${current_user.coins}" value="0">
+                <p class="text-sm text-gray-500 mt-1">
+                    Available: ${current_user.coins} coins
+                </p>
+            </div>
+        </div>
+    `;
+}
+
+function closePredictionModal() {
+    document.getElementById('predictionModal').classList.add('hidden');
+    currentGameId = null;
+}
+
+function submitPrediction() {
+    if (!currentGameId) return;
+    
+    const wagerAmount = parseInt(document.getElementById('wagerAmount').value) || 0;
+    
+    fetch('/make_prediction', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            game_id: currentGameId,
+            coins_wagered: wagerAmount
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        // Show success message
+        const content = document.getElementById('predictionContent');
+        content.innerHTML = `
+            <div class="text-green-600 text-center">
+                Prediction saved successfully!
+            </div>
+        `;
+        // Reload page after short delay
+        setTimeout(() => {
+            location.reload();
+        }, 1500);
+    })
+    .catch(error => {
+        const content = document.getElementById('predictionContent');
+        content.innerHTML += `
+            <div class="text-red-600 mt-4">
+                Error saving prediction: ${error.message}
+            </div>
+        `;
+    });
+}
+
+// Auto-update live games
+function updateLiveGames() {
+    fetch('/api/live_updates')
+        .then(response => response.json())
+        .then(data => {
+            if (data.updates) {
+                data.updates.forEach(update => {
+                    updateGameScore(update);
+                });
+            }
+        })
+        .catch(error => console.error('Error updating live games:', error));
+}
+
+function updateGameScore(update) {
+    const gameElement = document.querySelector(`[data-game-id="${update.game_id}"]`);
+    if (gameElement) {
+        const homeScore = gameElement.querySelector('.home-score');
+        const awayScore = gameElement.querySelector('.away-score');
+        if (homeScore && awayScore) {
+            homeScore.textContent = update.score.home;
+            awayScore.textContent = update.score.away;
+        }
+    }
+}
+
+// Update live games every 30 seconds
+setInterval(updateLiveGames, 30000);
+
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize any tooltips or popovers here
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Handle wager input validation
+document.addEventListener('input', function(e) {
+    if (e.target && e.target.id === 'wagerAmount') {
+        const maxCoins = parseInt(e.target.max);
+        let value = parseInt(e.target.value);
+        
+        if (isNaN(value)) {
+            e.target.value = 0;
+        } else if (value < 0) {
+            e.target.value = 0;
+        } else if (value > maxCoins) {
+            e.target.value = maxCoins;
+        }
+    }
+});
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closePredictionModal();
+    }
+});
+
+// Handle mobile responsiveness
+function adjustModalForMobile() {
+    const modal = document.getElementById('predictionModal');
+    if (window.innerWidth < 640) { // Mobile breakpoint
+        modal.querySelector('.relative').classList.remove('w-96');
+        modal.querySelector('.relative').classList.add('w-11/12');
+    } else {
+        modal.querySelector('.relative').classList.remove('w-11/12');
+        modal.querySelector('.relative').classList.add('w-96');
+    }
+}
+
+// Add resize listener for mobile responsiveness
+window.addEventListener('resize', adjustModalForMobile);
+document.addEventListener('DOMContentLoaded', adjustModalForMobile);
+
+// Add loading indicators
+function showLoading() {
+    return `
+        <div class="flex justify-center items-center space-x-2">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+            <span>Loading...</span>
+        </div>
+    `;
+}
+
+// Add error handling with retry
+function handleError(error, retryFunction) {
+    return `
+        <div class="text-center space-y-4">
+            <div class="text-red-600">${error}</div>
+            <button onclick="${retryFunction}" 
+                    class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                Retry
+            </button>
+        </div>
+    `;
+}
+
+// Add success animation
+function showSuccess(message) {
+    return `
+        <div class="text-center space-y-2">
+            <svg class="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M5 13l4 4L19 7"></path>
+            </svg>
+            <div class="text-green-600 font-medium">${message}</div>
+        </div>
+    `;
+}
+
+// Auto-update predictions every 5 minutes
+function updatePredictions() {
+    fetch('/api/update_predictions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.updated_count > 0) {
+            // Update UI with new values
+            document.getElementById('userCoins').textContent = data.new_coins;
+            document.getElementById('userBoostPoints').textContent = data.new_boost_points;
+            // Reload page to show updated predictions
+            location.reload();
+        }
+    })
+    .catch(error => console.error('Error updating predictions:', error));
+}
+
+// Update every 5 minutes
+setInterval(updatePredictions, 300000);
+
+// Initial update
+document.addEventListener('DOMContentLoaded', updatePredictions);
+</script>
+
+{% endblock %}
+
+
